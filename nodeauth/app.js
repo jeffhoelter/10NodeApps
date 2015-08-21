@@ -23,6 +23,11 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
+
+// Handle file uploads
+app.use(multer({dest:'./uploads'}));
+
+
 // uncomment after placing your favicon in /public
 // app.use(favicon(__dirname + '/public/favicon.ico'));
 app.use(logger('dev'));
@@ -72,8 +77,7 @@ app.use(function (req, res, next) {
 app.use('/', routes);
 app.use('/users', users);
 
-// Handle file uploads
-app.use(multer({dest:'./uploads'}));
+
 
 
 // catch 404 and forward to error handler
