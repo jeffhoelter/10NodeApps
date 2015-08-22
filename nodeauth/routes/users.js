@@ -1,35 +1,27 @@
+'use strict';
+
 var express = require('express');
-
 var router = express.Router();
-
 var User = require('../models/user');
-
 var passport = require('passport');
-var localStrategy = require('passport-local').Strategy;
+var LocalStrategy = require('passport-local').Strategy;
 
-/* GET users listing. */
 router.get('/', function(req, res, next) {
 	res.send('respond with a resource');
 });
 
-/* GET users listing. */
 router.get('/register', function(req, res, next) {
 	res.render('register', {
 		title: 'Register'
 	});
 });
 
-
-/* GET users listing. */
 router.get('/login', function(req, res, next) {
 	res.render('login', {
 		title: 'Log In'
 	});
 });
 
-
-
-/* POST users listing. */
 router.post('/register', function(req, res, next) {
 	// Get the form values
 	var name = req.body.name;
@@ -37,7 +29,7 @@ router.post('/register', function(req, res, next) {
 	var username = req.body.username;
 	var password = req.body.password;
 	var confirmedPassword = req.body.confirmedPassword;
-	var profileImage = null; //req.files.profileImage;
+	var profileImage = null; // req.files.profileImage;
 
 	// Check for image field
 	if (profileImage) {
@@ -70,7 +62,7 @@ router.post('/register', function(req, res, next) {
 	var errors = req.validationErrors();
 
 	if (errors) {
-		console.log("hi" + name);
+		console.log('hi' + name);
 		res.render('register', {
 			errors: errors,
 			name: name,
@@ -90,10 +82,10 @@ router.post('/register', function(req, res, next) {
 		// Create User
 		User.createUser(newUser, function(err, user) {
 			if (err) {
-				console.log("error");
+				console.log('error');
 				throw err;
 			}
-			console.log("user");
+			console.log('user');
 			console.log(user);
 		});
 
@@ -106,16 +98,41 @@ router.post('/register', function(req, res, next) {
 
 });
 
-passport.use(new localStrategy(
+
+passport.serializeUser(function(user, done) {
+	done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done) {
+	User.findById(id, function(err, user) {
+		done(err, user);
+	});
+});
+
+passport.use(new LocalStrategy(
 	function(username, password, done) {
 		User.getUserByUsername(username, function(err, user) {
 			if (err) {
 				throw err;
 			}
 			if (!user) {
-				console.log("Unknown user");
+				console.log('Unknown user');
 				return done(null, false, {message: 'Unknown User'});
 			}
+
+			User.comparePassword(password, user.password, function(err, isMatch) {
+				if (err) {
+					throw err;
+				}
+
+				if (isMatch) {
+					console.log('Valid password');
+					return done(null, user);
+				} else {
+					console.log('Invalid password');
+					return done(null, false, {message: 'Invalid Password'});
+				}
+			});
 		});
 	}
 ));
@@ -123,10 +140,15 @@ passport.use(new localStrategy(
 router.post('/login', passport.authenticate('local', {
 	failureRedirect: '/users/login',
 	failureFlash: 'Invalid username or password'
-}), function(request, response) {
-	console.log("Authentication successful");
+}), function(req, res) {
+	console.log('Authentication successful');
 	req.flash('success', 'You are logged in');
 	res.redirect('/');
+});
+
+router.get('/logout', function(req, res) {
+	req.logout();
+	res.redirect('/users/login');
 });
 
 module.exports = router;
